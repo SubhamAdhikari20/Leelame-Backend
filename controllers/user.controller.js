@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import axios from 'axios';
 import { sendVerificationEmail } from "../helpers/sendVerificationEmail.js";
-import { sendResetPasswordVerificationEmail } from "../helpers/sendResetPasswordVerificationEmail.js";
+// import { sendResetPasswordVerificationEmail } from "../helpers/sendResetPasswordVerificationEmail.js";
 
 // Create a new user
 export const createUser = async (req, res) => {
@@ -90,6 +90,31 @@ export const createUser = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Error signing up the user",
+        });
+    }
+};
+
+// Check if username is unique
+export const checkUsernameUnique = async (req, res) => {
+    try {
+        const { username } = req.query;
+        if (!username || username.trim() === '') {
+            return res.status(400).json({ success: false, message: "Username is required" });
+        }
+
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(200).json({ success: true, isUnique: false, message: "Username already exists" });
+        }
+        else {
+            return res.status(200).json({ success: true, isUnique: true, message: "Username is available" });
+        }
+    }
+    catch (error) {
+        console.error("Error checking username uniqueness: ", error);
+        res.status(500).json({
+            success: false,
+            message: "Error checking username uniqueness",
         });
     }
 };
@@ -199,3 +224,4 @@ export const googleLogin = async (req, res) => {
         res.status(500).json({ error: 'Google login failed' });
     }
 };
+

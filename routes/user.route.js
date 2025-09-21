@@ -1,8 +1,7 @@
 // backend/routes/user.route.js
 import express from "express";
 import { authGuard } from "../middlewares/authGuard.js";
-import { createUser, loginUser, googleLogin, checkUsernameUnique, handleSendEmailForRegistration, findUserByUsername, verifyOTPForRegistration, forgotPassword, verifyOTPForResetPassword, resetPassword } from "../controllers/UserController.js";
-import { googleLogin } from "../controllers/authController.js";
+import { createUser, loginUser, googleLogin, checkUsernameUnique } from "../controllers/user.controller.js";
 // import { body } from "express-validator";
 
 
