@@ -102,13 +102,30 @@ export const checkUsernameUnique = async (req, res) => {
             return res.status(400).json({ success: false, message: "Username is required" });
         }
 
-        const existingUser = await User.findOne({ username });
-        if (existingUser) {
-            return res.status(200).json({ success: true, isUnique: false, message: "Username already exists" });
+        if (username.length < 3) {
+            return res.status(400).json({ success: false, message: "Username must be atleast 3 characters long" });
         }
-        else {
-            return res.status(200).json({ success: true, isUnique: true, message: "Username is available" });
+
+        if (username.length > 20) {
+            return res.status(400).json({ success: false, message: "Username must not exceed 20 characters" });
         }
+
+        const existingVerifiedUser = await User.findOne({ username });
+
+        if (existingVerifiedUser && existingVerifiedUser.isVerified === true) {
+            return res.status(400).json(
+                {
+                    success: false,
+                    message: "Username is already taken!"
+                }
+            );
+        }
+        return res.status(200).json(
+            {
+                success: true,
+                message: "Username is available"
+            }
+        );
     }
     catch (error) {
         console.error("Error checking username uniqueness: ", error);
@@ -171,7 +188,7 @@ export const loginUser = async (req, res) => {
 
 };
 
-
+// Login with Google
 export const googleLogin = async (req, res) => {
     try {
         const { access_token } = req.body;
@@ -225,3 +242,197 @@ export const googleLogin = async (req, res) => {
     }
 };
 
+// Send verification email for registration
+export const handleSendEmailForRegistration = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email || email.trim() === '') {
+            return res.status(400).json({ success: false, message: "Email is required" });
+        }
+
+        const existingUser = await User.findOne({ email });
+        if (!existingUser) {
+            return res.status(404).json({ success: false, message: "User with this email does not exist. Please sign up." });
+        }
+
+        if (existingUser.isVerified) {
+            return res.status(400).json({ success: false, message: "This account is already verified. Please login." });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiryDate = new Date();
+        expiryDate.setMinutes(expiryDate.getMinutes() + 10); // Add 10 mins from 'now'
+
+        existingUser.verifyCode = otp;
+        existingUser.verifyCodeExpiryDate = expiryDate;
+        await existingUser.save();
+
+        // send verfication email
+        const emailResponse = await sendVerificationEmail(existingUser.fullName, email, otp);
+        if (!emailResponse.success) {
+            return res.status(500).json({
+                success: false,
+                message: emailResponse.message,
+            });
+        }
+
+        return res.status(200).json({
+            sucess: true,
+            message: "Verification email sent. Please check your inbox.",
+        });
+    }
+    catch (error) {
+        console.error("Error sending verification email: ", error);
+        res.status(500).json({
+            success: false,
+            message: "Error sending verification email",
+        });
+    }
+};
+
+// // Forgot Password
+// export const forgotPassword = async (req, res) => {
+//     try {
+//         const { email } = req.body;
+
+//         if (!email || email.trim() === '') {
+//             return res.status(400).json({ success: false, message: "Email is required" });
+//         }
+
+//         const existingUser = await User.findOne({ email });
+//         if (!existingUser) {
+//             return res.status(404).json({ success: false, message: "User with this email does not exist." });
+//         }
+
+//         if (!existingUser.isVerified) {
+//             return res.status(400).json({ success: false, message: "This account is not verified. Please verify your email first." });
+//         }
+
+//         const otp = Math.floor(100000 + Math.random() * 900000).toString();
+//         const expiryDate = new Date();
+//         expiryDate.setMinutes(expiryDate.getMinutes() + 10); // Add 10 mins from 'now'
+
+//         existingUser.resetPasswordCode = otp;
+//         existingUser.resetPasswordCodeExpiryDate = expiryDate;
+//         await existingUser.save();
+
+//         // send reset password verification email
+//         // const emailResponse = await sendResetPasswordVerificationEmail(existingUser.fullName, email, otp);
+//         // if (!emailResponse.success) {
+//         //     return res.status(500).json({
+//         //         success: false,
+//         //         message: emailResponse.message,
+//         //     });
+//         // }
+
+//         return res.status(200).json({
+//             sucess: true,
+//             message: "Reset password verification email sent. Please check your inbox.",
+//         });
+//     }
+//     catch (error) {
+//         console.error("Error in forgot password: ", error);
+//         res.status(500).json({
+//             success: false,
+//             message: "Error in forgot password",
+//         });
+//     }
+// };
+
+// // Verify OTP for Reset Password
+// export const verifyOTPForResetPassword = async (req, res) => {
+//     try {
+//         const { email, otp } = req.body;
+
+//         if (!email || email.trim() === '') {
+//             return res.status(400).json({ success: false, message: "Email is required" });
+//         }
+
+//         if (!otp || otp.trim() === '') {
+//             return res.status(400).json({ success: false, message: "OTP is required" });
+//         }
+
+//         const existingUser = await User.findOne({ email });
+//         if (!existingUser) {
+//             return res.status(404).json({ success: false, message: "User with this email does not exist." });
+//         }
+
+//         if (!existingUser.resetPasswordCode || !existingUser.resetPasswordCodeExpiryDate) {
+//             return res.status(400).json({ success: false, message: "No OTP request found. Please request for a new OTP." });
+//         }
+
+//         if (existingUser.resetPasswordCode !== otp) {
+//             return res.status(400).json({ success: false, message: "Invalid OTP. Please try again." });
+//         }
+
+//         if (new Date() > existingUser.resetPasswordCodeExpiryDate) {
+//             return res.status(400).json({ success: false, message: "OTP has expired. Please request for a new OTP." });
+//         }
+
+//         return res.status(200).json({
+//             sucess: true,
+//             message: "OTP verified successfully. You can now reset your password.",
+//         });
+//     }
+//     catch (error) {
+//         console.error("Error verifying OTP for reset password: ", error);
+//         res.status(500).json({
+//             success: false,
+//             message: "Error verifying OTP for reset password",
+//         });
+//     }
+// };
+
+// // Reset Password
+// export const resetPassword = async (req, res) => {
+//     try {
+//         const { email, otp, newPassword } = req.body;
+
+//         if (!email || email.trim() === '') {
+//             return res.status(400).json({ success: false, message: "Email is required" });
+//         }
+
+//         if (!otp || otp.trim() === '') {
+//             return res.status(400).json({ success: false, message: "OTP is required" });
+//         }
+
+//         if (!newPassword || newPassword.trim() === '') {
+//             return res.status(400).json({ success: false, message: "New Password is required" });
+//         }
+
+//         const existingUser = await User.findOne({ email });
+//         if (!existingUser) {
+//             return res.status(404).json({ success: false, message: "User with this email does not exist." });
+//         }
+//         if (!existingUser.resetPasswordCode || !existingUser.resetPasswordCodeExpiryDate) {
+//             return res.status(400).json({ success: false, message: "No OTP request found. Please request for a new OTP." });
+//         }
+
+//         if (existingUser.resetPasswordCode !== otp) {
+//             return res.status(400).json({ success: false, message: "Invalid OTP. Please try again." });
+//         }
+//         if (new Date() > existingUser.resetPasswordCodeExpiryDate) {
+//             return res.status(400).json({ success: false, message: "OTP has expired. Please request for a new OTP." });
+//         }
+
+//         const salt = bcrypt.genSaltSync(10);
+//         const hashedPassword = await bcrypt.hash(newPassword, salt);
+//         existingUser.password = hashedPassword;
+//         existingUser.resetPasswordCode = null;
+//         existingUser.resetPasswordCodeExpiryDate = null;
+//         await existingUser.save();
+
+//         return res.status(200).json({
+//             sucess: true,
+//             message: "Password reset successfully. You can now login with your new password.",
+//         });
+//     }
+//     catch (error) {
+//         console.error("Error resetting password: ", error);
+//         res.status(500).json({
+//             success: false,
+//             message: "Error resetting password",
+//         });
+//     }
+// };
