@@ -9,7 +9,7 @@ import { sendResetPasswordVerificationEmail } from "../helpers/sendResetPassword
 // Create a new user
 export const createUser = async (req, res) => {
     try {
-        const { fullName, contact, username, email, password, terms } = req.body;
+        const { fullName, contact, username, email, password, terms, role } = req.body;
 
         // Check for existing username
         const existingUserByUsername = await User.findOne({ username });
@@ -67,13 +67,14 @@ export const createUser = async (req, res) => {
                 verifyCodeExpiryDate: expiryDate,
                 isVerified: false,
                 terms,
+                role,
             });
             await newUser.save();
         }
 
         // Generate Token
         const token = jwt.sign(
-            { _id: newUser._id, email: newUser.email },
+            { _id: newUser._id, email: newUser.email, username: newUser.username, role: newUser.role },
             process.env.JWT_SECRET,
             { expiresIn: `${process.env.JWT_SIGNUP_EXPIRES_IN}` }
         );
@@ -234,12 +235,10 @@ export const loginUser = async (req, res) => {
 
         // Generate Token
         const token = jwt.sign(
-            { _id: checkExistingUser._id, email: checkExistingUser.email },
+            { _id: checkExistingUser._id, email: checkExistingUser.email, username: checkExistingUser.username, role: checkExistingUser.role },
             process.env.JWT_SECRET,
             { expiresIn: `${process.env.JWT_LOGIN_EXPIRES_IN}` }
         );
-
-        // const token = user.generateJWT();
 
         res.status(200).json({ sucess: true, message: 'Login successful', token, user: checkExistingUser });
     }
@@ -280,7 +279,7 @@ export const googleLogin = async (req, res) => {
 
         // Create JWT token
         const token = jwt.sign(
-            { _id: user._id, email: user.email },
+            { _id: user._id, email: user.email, username: user.username, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: `${process.env.JWT_LOGIN_EXPIRES_IN}` }
         );
@@ -288,14 +287,8 @@ export const googleLogin = async (req, res) => {
         res.status(200).json({
             message: '✅ Google login success',
             token,
-            user: {
-                id: user._id,
-                fullName: user.fullName,
-                email: user.email,
-                profilePictureUrl: user.profilePictureUrl,
-            },
+            user
         });
-
     }
     catch (error) {
         console.error('Google login failed:', error);
@@ -491,5 +484,23 @@ export const resetPassword = async (req, res) => {
             success: false,
             message: "Error resetting password",
         });
+    }
+};
+
+// Get Current User
+export const getCurrentUser = async (req, res) => {
+    try {
+        const userId = req.user._id; // From decoded JWT via authGuard middleware
+        const user = await User.findById(userId);
+        // const user = await User.findById(userId).select("-password");    // exclude password
+        // console.log("Fetched current user:", user);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        res.status(200).json({ success: true, user });
+    } catch (error) {
+        console.error("Error fetching current user:", error);
+        res.status(500).json({ success: false, message: "Error fetching current user" });
     }
 };

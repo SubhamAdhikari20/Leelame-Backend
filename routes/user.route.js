@@ -1,7 +1,7 @@
 // backend/routes/user.route.js
 import express from "express";
 import { authGuard } from "../middlewares/authGuard.js";
-import { createUser, verifyOTPForRegistration, loginUser, googleLogin, checkUsernameUnique, handleSendEmailForRegistration, forgotPassword, verifyOTPForResetPassword, resetPassword } from "../controllers/user.controller.js";
+import { createUser, verifyOTPForRegistration, loginUser, googleLogin, checkUsernameUnique, handleSendEmailForRegistration, forgotPassword, verifyOTPForResetPassword, resetPassword,getCurrentUser } from "../controllers/user.controller.js";
 // import { body } from "express-validator";
 
 
@@ -14,6 +14,7 @@ router.put("/verify-account-registration", verifyOTPForRegistration);
 router.post("/login-user", loginUser);
 router.put("/send-verification-email-registration", handleSendEmailForRegistration);
 router.post("/google-login", googleLogin);
+router.get("/get-current-user", authGuard, getCurrentUser);
 
 router.put("/forgot-password", forgotPassword);
 router.put("/verify-account-reset-password", verifyOTPForResetPassword);
