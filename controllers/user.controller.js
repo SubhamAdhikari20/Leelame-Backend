@@ -504,3 +504,114 @@ export const getCurrentUser = async (req, res) => {
         res.status(500).json({ success: false, message: "Error fetching current user" });
     }
 };
+
+// Validate Username (for route param)
+export const validateUsername = async (req, res) => {
+    try {
+        const { username } = req.query;
+        const user = await User.findOne({ username });
+        if (user) {
+            return res.status(200).json({ exists: true });
+        }
+        else {
+            return res.status(200).json({ exists: false });
+        }
+    }
+    catch (error) {
+        console.error("Error validating username: ", error);
+        res.status(500).json({
+            success: false,
+            message: "Error validating username",
+        });
+    }
+};
+
+// Update User Details
+export const updateUserDetails = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const data = req.json();
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        // Check for existing username
+        if (data.username && data.username !== user.username) {
+            const existingUserByUsername = await User.findOne({ username: data.username });
+            if (existingUserByUsername && existingUserByUsername.isVerified === true) {
+                return res.status(400).json({ success: false, message: "Username already exists" });
+            }
+            user.username = data.username;
+        }
+
+        // Check for existing email
+        if (data.email && data.email !== user.email) {
+            const existingUserByEmail = await User.findOne({ email: data.email });
+            if (existingUserByEmail && existingUserByEmail.isVerified === true) {
+                return res.status(400).json({ success: false, message: "Email already exists" });
+            }
+            user.email = data.email;
+        }
+
+        // Check for existing contact number
+        if (data.contact && data.contact !== user.contact) {
+            const existingUserByContact = await User.findOne({ contact: data.contact });
+            if (existingUserByContact && existingUserByContact.isVerified === true) {
+                return res.status(400).json({ success: false, message: "Contact already exists" });
+            }
+            user.contact = data.contact;
+        }
+
+        if (data.fullName) user.fullName = data.fullName;
+
+        await user.save();
+        res.status(200).json({ success: true, message: "User details updated successfully", user });
+    }
+    catch (error) {
+        console.error("Error updating user details:", error);
+        res.status(500).json({ success: false, message: "Error updating user details" });
+    }
+};
+
+// Delete User
+export const deleteUser = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const user = await User.findByIdAndDelete(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        res.status(200).json({ success: true, message: "User deleted successfully" });
+    }
+    catch (error) {
+        console.error("Error deleting user:", error);
+        res.status(500).json({ success: false, message: "Error deleting user" });
+    }
+};
+
+// Get Public User Profile by Username
+export const getPublicUserProfile = async (req, res) => {
+    try {
+        const { username } = req.query;
+        if (!username) {
+            return res.status(400).json({ success: false, message: "Username is required" });
+        }
+
+        // select only public-safe fields
+        const user = await User.findOne({ username }).select(
+            "username fullName profilePictureUrl role createdAt"
+        );
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        return res.status(200).json({ success: true, user });
+    }
+    catch (error) {
+        console.error("Error fetching public user profile:", error);
+        return res.status(500).json({ success: false, message: "Error fetching public profile" });
+    }
+};

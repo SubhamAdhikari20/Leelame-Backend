@@ -19,6 +19,8 @@ const userSchema = new mongoose.Schema({
         unique: true,
         sparse: true,
         match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'],
+        minLength: [3, "Username must be at least 3 characters"],
+        maxLength: [30, "Username cannot exceed 30 characters"],
     },
     email: {
         type: String,
@@ -43,6 +45,11 @@ const userSchema = new mongoose.Schema({
     isVerified: {
         type: Boolean,
         default: false,
+    },
+    bio: {
+        type: String,
+        maxLength: [500, "Bio cannot exceed 500 characters"],
+        default: null,
     },
     verifyCode: {
         type: String,
