@@ -41,6 +41,7 @@ const userSchema = new mongoose.Schema({
     },
     profilePictureUrl: {
         type: String,
+        default: null,
     },
     isVerified: {
         type: Boolean,

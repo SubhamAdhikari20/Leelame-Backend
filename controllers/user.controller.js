@@ -5,6 +5,8 @@ import jwt from "jsonwebtoken";
 import axios from 'axios';
 import { sendVerificationEmail } from "../helpers/sendVerificationEmail.js";
 import { sendResetPasswordVerificationEmail } from "../helpers/sendResetPasswordVerificationEmail.js";
+import { uploadImage } from "../middlewares/uploadImage.js";
+
 
 // Create a new user
 export const createUser = async (req, res) => {
@@ -590,6 +592,42 @@ export const deleteUser = async (req, res) => {
         res.status(500).json({ success: false, message: "Error deleting user" });
     }
 };
+
+// Upload User Profile Picture
+export const uploadUserProfilePicture = async (req, res) => {
+    const userId = req.user._id;
+    const file = req.file;
+    if (!file) {
+        return res.status(400).json({ success: false, message: "No image uploaded!" });
+    }
+    // const profilePictureUrl = req.file ? req.file.path : null;
+
+    try {
+        if (!file) {
+            return res.status(400).json({ success: false, message: "No image uploaded!" });
+        }
+
+        const imageUrl = await uploadImage(
+            file.buffer,
+            file.originalname,
+            "leelame/profile-pictures"
+        );
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { profilePictureUrl: imageUrl },
+            { new: true }
+        );
+
+        await user.save();
+
+        return res.status(201).json({ success: true, message: "User Profile Picture updated successfully!", user });
+    }
+    catch (error) {
+        console.error("Error uploading profile picture:", error);
+        return res.status(500).json({ success: false, message: "Internal server error!" });
+    }
+}
 
 // Get Public User Profile by Username
 export const getPublicUserProfile = async (req, res) => {

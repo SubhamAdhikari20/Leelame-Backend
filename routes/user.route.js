@@ -1,7 +1,8 @@
 // backend/routes/user.route.js
 import express from "express";
 import { authGuard } from "../middlewares/authGuard.js";
-import { createUser, verifyOTPForRegistration, loginUser, googleLogin, checkUsernameUnique, handleSendEmailForRegistration, forgotPassword, verifyOTPForResetPassword, resetPassword, getCurrentUser, updateUserDetails, deleteUser, validateUsername, getPublicUserProfile } from "../controllers/user.controller.js";
+import { upload } from "../middlewares/uploadImage.js";
+import { createUser, verifyOTPForRegistration, loginUser, googleLogin, checkUsernameUnique, handleSendEmailForRegistration, forgotPassword, verifyOTPForResetPassword, resetPassword, getCurrentUser, updateUserDetails, deleteUser, validateUsername, getPublicUserProfile, uploadUserProfilePicture } from "../controllers/user.controller.js";
 // import { body } from "express-validator";
 import User from "../models/user.model.js";
 
@@ -22,11 +23,12 @@ router.put("/reset-password", resetPassword);
 
 router.put("/update-user-details/:userId", authGuard, updateUserDetails);
 router.delete("/delete-user/:userId", authGuard, deleteUser);
+router.put("/profile-picture", authGuard, upload.single("profilePicture"), uploadUserProfilePicture);
 
 router.get("/check-username", validateUsername);
 
 // public profile (no auth)
-router.get("/public-profile", getPublicUserProfile);
+router.get("/public-user-profile", getPublicUserProfile);
 
 
 export default router;
