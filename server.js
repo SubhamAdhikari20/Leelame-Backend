@@ -7,6 +7,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import connectDB from './db/database.js';
 import userRoute from './routes/user.route.js'
+import notificationRoute from './routes/notification.route.js'
 
 const app = express();
 const PORT = process.env.PORT;
@@ -26,6 +27,7 @@ app.get('/', (req, res) => {
 });
 
 app.use("/api/user", userRoute);
+app.use("/api/notification", notificationRoute);
 
 
 app.listen(PORT, () => {

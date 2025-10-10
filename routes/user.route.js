@@ -3,8 +3,7 @@ import express from "express";
 import { authGuard } from "../middlewares/authGuard.js";
 import { upload } from "../middlewares/uploadImage.js";
 import { createUser, verifyOTPForRegistration, loginUser, googleLogin, checkUsernameUnique, handleSendEmailForRegistration, forgotPassword, verifyOTPForResetPassword, resetPassword, getCurrentUser, updateUserDetails, deleteUser, validateUsername, getPublicUserProfile, uploadUserProfilePicture } from "../controllers/user.controller.js";
-// import { body } from "express-validator";
-import User from "../models/user.model.js";
+
 
 const router = express.Router();
 

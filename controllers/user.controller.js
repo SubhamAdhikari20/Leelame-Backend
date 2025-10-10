@@ -74,11 +74,15 @@ export const createUser = async (req, res) => {
             await newUser.save();
         }
 
+        // JWT Expiry Calculation in seconds for Signup Token
+        const secondsInAYear = 365 * 24 * 60 * 60;
+        const expiresInSeconds = Number(process.env.JWT_SIGNUP_EXPIRES_IN) * secondsInAYear;
+
         // Generate Token
         const token = jwt.sign(
             { _id: newUser._id, email: newUser.email, username: newUser.username, role: newUser.role },
             process.env.JWT_SECRET,
-            { expiresIn: `${process.env.JWT_SIGNUP_EXPIRES_IN}` }
+            { expiresIn: expiresInSeconds }
         );
 
         // send verfication email
